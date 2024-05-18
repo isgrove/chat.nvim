@@ -21,7 +21,6 @@ local function streamChat(model, messages)
 	}
 
 	local request_body_json = cjson.encode(request_body)
-	local response_buffer = {}
 	local incomplete_buffer = ""
 	local content_buffer = ""
 
@@ -32,7 +31,6 @@ local function streamChat(model, messages)
 	-- Function to handle each chunk of the response
 	local function handle_chunk(chunk)
 		if chunk then
-			table.insert(response_buffer, chunk)
 			chunk = vim.trim(chunk)
 
 			-- Append the new chunk to the incomplete buffer
