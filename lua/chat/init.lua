@@ -1,5 +1,3 @@
-local http = require("socket.http")
-local ltn12 = require("ltn12")
 local cjson = require("cjson")
 
 local MAX_TOKENS = 1024 / 4
@@ -7,12 +5,21 @@ local DEFAULT_MODEL = "gpt-4o"
 
 local M = {}
 
-local OPENAI_API_TOKEN = "secret"
 
-local function streamChat(model, messages)
-	model = model or DEFAULT_MODEL
-
+local function streamChat(messages, opts)
 	local url = "https://api.openai.com/v1/chat/completions"
+
+	local identity1 = function(chunk)
+		return chunk
+	end
+
+	local identity = function() end
+
+	opts = opts or {}
+	local model = opts.model or DEFAULT_MODEL
+	local callback = opts.on_chunk or identity1
+	local on_exit = opts.on_exit or identity
+	local trim_leading = opts.trim_leading or true
 
 	local request_body = {
 		model = model,
@@ -21,92 +28,73 @@ local function streamChat(model, messages)
 	}
 
 	local request_body_json = cjson.encode(request_body)
-	local incomplete_buffer = ""
-	local content_buffer = ""
 
-	-- Get the current buffer and initialize line number
-	local current_buffer = vim.api.nvim_get_current_buf()
-	local line_num = vim.api.nvim_buf_line_count(current_buffer) -- Start at the last line
+	local command = "curl --no-buffer "
+		.. url
+		.. " "
+		.. "-H 'Content-Type: application/json' -H 'Authorization: Bearer "
+		.. OPENAI_API_TOKEN
+		.. "' "
+		.. "-d '"
+		.. request_body_json
+		.. "'"
 
-	-- Function to handle each chunk of the response
-	local function handle_chunk(chunk)
-		if chunk then
-			chunk = vim.trim(chunk)
+	vim.g.chat_jobid = vim.fn.jobstart(command, {
+		stdout_buffered = false,
+		on_exit = on_exit,
+		on_stdout = function(_, data, _)
+			for _, line in ipairs(data) do
+				if line ~= "" then
+					-- Strip token to get down to the JSON
+					line = line:gsub("^data: ", "")
+					if line == "" then
+						break
+					end
+					local json = vim.fn.json_decode(line)
+					local chunk = json.choices[1].delta.content
 
-			-- Append the new chunk to the incomplete buffer
-			incomplete_buffer = incomplete_buffer .. chunk
-
-			-- Split the buffer on "data: " to process each JSON object
-			local parts = vim.split(incomplete_buffer, "data: ", {})
-
-			-- Process each part except the first one (which is before the first "data: " prefix)
-			for i = 2, #parts do
-				local part = parts[i]
-
-				-- Trim the part to remove any leading/trailing whitespace
-				part = vim.trim(part)
-
-				if part == "[DONE]" then
-					incomplete_buffer = ""
-					return 1
+					if chunk ~= nil then
+						if trim_leading then
+							chunk = chunk:gsub("^%s+", "")
+							if chunk ~= "" then
+								trim_leading = false
+							end
+						end
+						callback(chunk)
+					end
 				end
-
-				-- Parse the JSON part
-				local ok, parsed = pcall(cjson.decode, part)
-
-				if not ok then
-					print("Error parsing JSON:", parsed)
-					print("Part:", part)
-					return 0
-				end
-
-				-- Extract the content from the JSON
-				local content = parsed.choices[1].delta.content or ""
-
-				-- Append the content to the content buffer
-				content_buffer = content_buffer .. content
-
-				-- Find newline characters in the content buffer
-				local lines = vim.split(content_buffer, "\n")
-
-				-- Append each complete line to the current buffer, except the last one
-				for j = 1, #lines - 1 do
-					vim.api.nvim_buf_set_lines(current_buffer, line_num, line_num, false, { lines[j] })
-					line_num = line_num + 1 -- Move to the next line
-				end
-
-				-- Keep the last part in the content buffer as it might be incomplete
-				content_buffer = lines[#lines]
 			end
-
-			-- Keep the last part in the buffer as it might be incomplete
-			incomplete_buffer = parts[#parts]
-		end
-		return 1
-	end
-
-	-- Headers for the HTTP request
-	local headers = {
-		["Content-Type"] = "application/json",
-		["Authorization"] = "Bearer " .. OPENAI_API_TOKEN,
-		["Content-Length"] = tostring(#request_body_json),
-	}
-
-	-- Make the HTTP request
-	local _, code, headers, status = http.request({
-		url = url,
-		method = "POST",
-		headers = headers,
-		source = ltn12.source.string(request_body_json),
-		sink = ltn12.sink.simplify(handle_chunk),
+		end,
 	})
+end
 
-	if code ~= 200 then
-		print("Error: " .. (status or "Unknown error"))
+-- TODO: Find a way to undo the entire GPT response in one :undo
+local function create_response_writer(opts)
+	opts = opts or {}
+	local bufnum = vim.api.nvim_get_current_buf()
+	-- local line_start = opts.line_no or vim.fn.line(".")
+	local line_start = opts.line_no or vim.api.nvim_buf_line_count(bufnum)
+	local nsnum = vim.api.nvim_create_namespace("gpt")
+	local extmarkid = vim.api.nvim_buf_set_extmark(bufnum, nsnum, line_start, 0, {})
+
+	local response = ""
+	return function(chunk)
+		-- Delete the currently written response
+		local num_lines = #(vim.split(response, "\n", {}))
+		vim.api.nvim_buf_set_lines(bufnum, line_start, line_start + num_lines, false, {})
+
+		-- Update the line start to wherever the extmark is now
+		line_start = vim.api.nvim_buf_get_extmark_by_id(bufnum, nsnum, extmarkid, {})[1]
+
+		-- Write out the latest
+		response = response .. chunk
+		vim.api.nvim_buf_set_lines(bufnum, line_start, line_start, false, vim.split(response, "\n", {}))
+
+		vim.cmd("undojoin")
 	end
 end
 
-function M.bufferCompletion(model)
+function M.bufferCompletion()
 	local bufnr = vim.api.nvim_get_current_buf()
 	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 	local content = table.concat(lines, "\n")
@@ -115,8 +103,10 @@ function M.bufferCompletion(model)
 		{ role = "user", content = content },
 	}
 
-	streamChat(model, messages)
-	-- local num_lines = vim.api.nvim_buf_line_count(bufnr)
+	streamChat(messages, {
+		trim_leading = true,
+		on_chunk = create_response_writer(),
+	})
 end
 
 return M
