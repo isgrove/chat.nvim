@@ -34,15 +34,25 @@ local function streamChat(messages, opts)
 
 	local request_body_json = vim.fn.json_encode(request_body)
 
+	-- NOTE: This is not ideal as we need to read/write from the disk, but this is the best way
+	-- I found to avoid new lines, quotes, backticks and etc. causing errors. From the curl man:
+	-- "When -d, --data is told to read from a file like that, carriage returns and newlines are stripped out"
+	-- TODO: Find a better method of doing this that avoids IO
+	local request_body_path = os.getenv("HOME") .. "/.local/share/nvim/chat_query.json"
+	local temp = io.open(request_body_path, "w")
+	if temp ~= nil then
+		temp:write(request_body_json)
+		temp:close()
+	end
+
 	local command = "curl --no-buffer "
 		.. url
 		.. " "
 		.. "-H 'Content-Type: application/json' -H 'Authorization: Bearer "
 		.. OPENAI_API_TOKEN
 		.. "' "
-		.. "-d @- <<EOF \n"
-		.. request_body_json
-		.. "\nEOF"
+		.. "-d @"
+		.. request_body_path
 
 	vim.g.chat_jobid = vim.fn.jobstart(command, {
 		stdout_buffered = false,
