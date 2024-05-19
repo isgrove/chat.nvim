@@ -6,6 +6,11 @@ local DEFAULT_MODEL = "gpt-4o"
 local M = {}
 
 
+function M.setup(opts)
+	local system_prompt = opts.system_prompt or "You are a helpful assistant."
+	vim.g.chat_system_prompt = system_prompt
+end
+
 local function streamChat(messages, opts)
 	local url = "https://api.openai.com/v1/chat/completions"
 
@@ -27,7 +32,7 @@ local function streamChat(messages, opts)
 		stream = true,
 	}
 
-	local request_body_json = cjson.encode(request_body)
+	local request_body_json = vim.fn.json_encode(request_body)
 
 	local command = "curl --no-buffer "
 		.. url
@@ -35,9 +40,9 @@ local function streamChat(messages, opts)
 		.. "-H 'Content-Type: application/json' -H 'Authorization: Bearer "
 		.. OPENAI_API_TOKEN
 		.. "' "
-		.. "-d '"
+		.. "-d @- <<EOF \n"
 		.. request_body_json
-		.. "'"
+		.. "\nEOF"
 
 	vim.g.chat_jobid = vim.fn.jobstart(command, {
 		stdout_buffered = false,
@@ -99,8 +104,11 @@ function M.bufferCompletion()
 	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 	local content = table.concat(lines, "\n")
 
+	local system_prompt = vim.g.chat_system_prompt
+
 	local messages = {
-		{ role = "user", content = content },
+		{ role = "system", content = { { type = "text", text = system_prompt } } },
+		{ role = "user", content = { { type = "text", text = content } } },
 	}
 
 	streamChat(messages, {
