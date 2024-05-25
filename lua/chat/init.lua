@@ -4,18 +4,49 @@ local DEFAULT_PROVIDER = "openai" -- or groq
 
 local M = {}
 
-local OPENAI_API_TOKEN = "secret"
-local GROQ_API_TOKEN = "secret"
-
 function M.setup(opts)
 	local system_prompt = opts.system_prompt or "You are a helpful assistant."
+	local openai_api_key = opts.openai_api_key
+	local groq_api_key = opts.groq_api_key
+
+	if openai_api_key == nil and groq_api_key == nil then
+		print("Please provide either an OpenAI or Groq API key")
+		return
+	end
+
+	if openai_api_key ~= nil then
+		vim.g.openai_api_key = openai_api_key
+	end
+
+	if groq_api_key ~= nil then
+		vim.g.groq_api_key = groq_api_key
+	end
+
 	vim.g.chat_system_prompt = system_prompt
 end
 
-local function streamChat(messages, opts)
-	local url
-	local token
+local function get_provider_opts(provider)
+	if provider == "openai" then
+		if vim.g.openai_api_key == nil then
+			print("Please provide an OpenAI API key in setup to use this model")
+			return
+		end
 
+		return "https://api.openai.com/v1/chat/completions", vim.g.openai_api_key
+	elseif provider == "groq" then
+		if vim.g.groq_api_key == nil then
+			print("Please provide an Groq API key in setup to use this model")
+			return
+		end
+
+		return "https://api.groq.com/openai/v1/chat/completions", vim.g.groq_api_key
+	else
+		print("Uknown API provider: " .. provider)
+		return
+	end
+end
+
+local function stream_chat(messages, opts)
 	local identity1 = function(chunk)
 		return chunk
 	end
@@ -28,14 +59,7 @@ local function streamChat(messages, opts)
 	local callback = opts.on_chunk or identity1
 	local on_exit = opts.on_exit or identity
 	local trim_leading = opts.trim_leading or true
-
-	if provider == "openai" then
-		url = "https://api.openai.com/v1/chat/completions"
-		token = OPENAI_API_TOKEN
-	elseif provider == "groq" then
-		url = "https://api.groq.com/openai/v1/chat/completions"
-		token = GROQ_API_TOKEN
-	end
+	local url, api_key = get_provider_opts(provider)
 
 	local request_body = {
 		model = model,
@@ -60,7 +84,7 @@ local function streamChat(messages, opts)
 		.. url
 		.. " "
 		.. "-H 'Content-Type: application/json' -H 'Authorization: Bearer "
-		.. token
+		.. api_key
 		.. "' "
 		.. "-d @"
 		.. request_body_path
@@ -150,7 +174,7 @@ function M.buffer_completion(model, provider)
 		{ role = "user", content = content },
 	}
 
-	streamChat(messages, {
+	stream_chat(messages, {
 		model = model,
 		provider = provider,
 		trim_leading = true,
