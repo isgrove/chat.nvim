@@ -123,7 +123,6 @@ end
 local function create_response_writer(opts)
 	opts = opts or {}
 	local bufnum = vim.api.nvim_get_current_buf()
-	-- local line_start = opts.line_no or vim.fn.line(".")
 	local line_start = opts.line_no or vim.api.nvim_buf_line_count(bufnum)
 	local nsnum = vim.api.nvim_create_namespace("gpt")
 	local extmarkid = vim.api.nvim_buf_set_extmark(bufnum, nsnum, line_start, 0, {})
@@ -149,6 +148,12 @@ local function get_visual_selection()
 	vim.cmd('noau normal! "vy"')
 	vim.cmd("noau normal! gv")
 	return vim.fn.getreg("v")
+end
+
+local function get_buffer_content()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+	return table.concat(lines, "\n")
 end
 
 local function send_keys(keys)
@@ -204,12 +209,20 @@ function M.selection_replace(model, provider)
 	})
 end
 
-function M.buffer_completion(model, provider)
-	local bufnr = vim.api.nvim_get_current_buf()
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-	local content = table.concat(lines, "\n")
-
+function M.completion(model, provider)
 	local system_prompt = vim.g.chat_system_prompt
+	local mode = vim.api.nvim_get_mode().mode
+	local content
+	local opts = {}
+
+	if mode == "v" or mode == "V" then
+		opts.line_no = vim.fn.line(".")
+		content = get_visual_selection()
+	else
+		local bufnum = vim.api.nvim_get_current_buf()
+		opts.line_no = vim.api.nvim_buf_line_count(bufnum)
+		content = get_buffer_content()
+	end
 
 	local messages = {
 		{ role = "system", content = system_prompt },
@@ -220,7 +233,7 @@ function M.buffer_completion(model, provider)
 		model = model,
 		provider = provider,
 		trim_leading = true,
-		on_chunk = create_response_writer(),
+		on_chunk = create_response_writer(opts),
 	})
 end
 
