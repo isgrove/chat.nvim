@@ -9,7 +9,7 @@ Make requests to LLMs right from Neovim. Here is what you can do:
 
 ## Setup
 Install with your package manager:
-```
+```lua
 {
   '/isgrove/chat.nvim',
   config = function()
