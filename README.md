@@ -1,6 +1,4 @@
 # chat.nvim
-Create a new buffer in nvim and make requests to LLMs
-
 Make requests to LLMs right from Neovim. Here is what you can do:
 - Replace the selected text
 - Get a completion for the selected text
