@@ -110,6 +110,24 @@ local function create_response_writer(opts)
 end
 
 function M.bufferCompletion()
+function M.change_system_prompt(method)
+	local system_prompt = vim.g.chat_system_prompt
+	local opts = { prompt = "[Prompt]: ", cancelreturn = "__CANCEL__" }
+
+	if method == "edit" then
+		opts.default = system_prompt
+	end
+
+	system_prompt = vim.fn.input(opts)
+
+	if system_prompt == "__CANCEL__" then
+		return
+	end
+
+	vim.g.chat_system_prompt = system_prompt
+end
+
+function M.buffer_completion(model, provider)
 	local bufnr = vim.api.nvim_get_current_buf()
 	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
 	local content = table.concat(lines, "\n")
