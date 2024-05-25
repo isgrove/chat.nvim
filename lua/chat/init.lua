@@ -145,6 +145,16 @@ local function create_response_writer(opts)
 	end
 end
 
+local function get_visual_selection()
+	vim.cmd('noau normal! "vy"')
+	vim.cmd("noau normal! gv")
+	return vim.fn.getreg("v")
+end
+
+local function send_keys(keys)
+	vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(keys, true, false, true), "m", false)
+end
+
 function M.change_system_prompt(method)
 	local system_prompt = vim.g.chat_system_prompt
 	local opts = { prompt = "[Prompt]: ", cancelreturn = "__CANCEL__" }
@@ -160,6 +170,38 @@ function M.change_system_prompt(method)
 	end
 
 	vim.g.chat_system_prompt = system_prompt
+end
+
+function M.selection_replace(model, provider)
+	local mode = vim.api.nvim_get_mode().mode
+	if mode ~= "v" and mode ~= "V" then
+		print("Please select some text")
+		return
+	end
+
+	local content = get_visual_selection()
+	local system_prompt = vim.g.chat_system_prompt
+	local messages = {
+		{ role = "system", content = system_prompt },
+		{ role = "user", content = content },
+	}
+
+	send_keys("d")
+
+	if mode == "V" then
+		send_keys("O")
+	end
+
+	stream_chat(messages, {
+		model = model,
+		provider = provider,
+		trim_leading = true,
+		on_chunk = function(chunk)
+			chunk = vim.split(chunk, "\n", {})
+			vim.api.nvim_put(chunk, "c", mode == "V", true)
+			vim.cmd("undojoin")
+		end,
+	})
 end
 
 function M.buffer_completion(model, provider)
