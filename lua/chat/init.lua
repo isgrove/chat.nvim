@@ -1,10 +1,11 @@
-local cjson = require("cjson")
-
 local MAX_TOKENS = 1024 / 4
 local DEFAULT_MODEL = "gpt-4o"
+local DEFAULT_PROVIDER = "openai" -- or groq
 
 local M = {}
 
+local OPENAI_API_TOKEN = "secret"
+local GROQ_API_TOKEN = "secret"
 
 function M.setup(opts)
 	local system_prompt = opts.system_prompt or "You are a helpful assistant."
@@ -12,7 +13,8 @@ function M.setup(opts)
 end
 
 local function streamChat(messages, opts)
-	local url = "https://api.openai.com/v1/chat/completions"
+	local url
+	local token
 
 	local identity1 = function(chunk)
 		return chunk
@@ -22,9 +24,18 @@ local function streamChat(messages, opts)
 
 	opts = opts or {}
 	local model = opts.model or DEFAULT_MODEL
+	local provider = opts.provider or DEFAULT_PROVIDER
 	local callback = opts.on_chunk or identity1
 	local on_exit = opts.on_exit or identity
 	local trim_leading = opts.trim_leading or true
+
+	if provider == "openai" then
+		url = "https://api.openai.com/v1/chat/completions"
+		token = OPENAI_API_TOKEN
+	elseif provider == "groq" then
+		url = "https://api.groq.com/openai/v1/chat/completions"
+		token = GROQ_API_TOKEN
+	end
 
 	local request_body = {
 		model = model,
@@ -49,7 +60,7 @@ local function streamChat(messages, opts)
 		.. url
 		.. " "
 		.. "-H 'Content-Type: application/json' -H 'Authorization: Bearer "
-		.. OPENAI_API_TOKEN
+		.. token
 		.. "' "
 		.. "-d @"
 		.. request_body_path
@@ -84,6 +95,7 @@ local function streamChat(messages, opts)
 end
 
 -- TODO: Find a way to undo the entire GPT response in one :undo
+-- https://neovim.io/doc/user/undo.html
 local function create_response_writer(opts)
 	opts = opts or {}
 	local bufnum = vim.api.nvim_get_current_buf()
@@ -109,7 +121,6 @@ local function create_response_writer(opts)
 	end
 end
 
-function M.bufferCompletion()
 function M.change_system_prompt(method)
 	local system_prompt = vim.g.chat_system_prompt
 	local opts = { prompt = "[Prompt]: ", cancelreturn = "__CANCEL__" }
@@ -135,11 +146,13 @@ function M.buffer_completion(model, provider)
 	local system_prompt = vim.g.chat_system_prompt
 
 	local messages = {
-		{ role = "system", content = { { type = "text", text = system_prompt } } },
-		{ role = "user", content = { { type = "text", text = content } } },
+		{ role = "system", content = system_prompt },
+		{ role = "user", content = content },
 	}
 
 	streamChat(messages, {
+		model = model,
+		provider = provider,
 		trim_leading = true,
 		on_chunk = create_response_writer(),
 	})
