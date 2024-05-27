@@ -14,7 +14,13 @@ Install with your package manager:
     local chat = require 'chat'
 
     chat.setup {
-      system_prompt = "There are instructions in the code comments. Only output code based on what you've seen. Mostly copy it, but attend to the instructions and modulate it according to what the instructions say. Only output valid code. If you must speak, make sure it must compile (Only keep it in the code comments).",
+      system_prompt = 'There are instructions in the code comments. Only '
+        .. "output code based on what you've seen. Mostly copy it, but "
+        .. 'attend to the instructions and modulate it according to what the '
+        .. 'instructions say. Only output valid code. If you must speak, '
+        .. 'make sure it must compile (Only keep it in the code comments). '
+        .. 'Filter out from your answer everything that is not code, '
+        .. 'including the formatting backticks ```',
       openai_api_key = os.getenv 'OPENAI_API_KEY',
       groq_api_key = os.getenv 'GROQ_API_KEY',
     }
