@@ -30,6 +30,37 @@ function M.get_provider_opts(provider)
 	return data.url, data.api_key
 end
 
+
+function M.jobstart_openai(command, on_exit, callback, trim_leading)
+	vim.g.chat_jobid = vim.fn.jobstart(command, {
+		stdout_buffered = false,
+		on_exit = on_exit,
+		on_stdout = function(_, data, _)
+			for _, line in ipairs(data) do
+				if line ~= "" then
+					-- Strip token to get down to the JSON
+					line = line:gsub("^data: ", "")
+					if line == "" then
+						break
+					end
+					local json = vim.fn.json_decode(line)
+					local chunk = json.choices[1].delta.content
+
+					if chunk ~= nil then
+						if trim_leading then
+							chunk = chunk:gsub("^%s+", "")
+							if chunk ~= "" then
+								trim_leading = false
+							end
+						end
+						callback(chunk)
+					end
+				end
+			end
+		end,
+	})
+end
+
 function M.get_request_body(content, opts)
 	local messages = {
 		{ role = "user", content = content },
@@ -55,8 +86,10 @@ function M.write_to_path(content, path)
 		temp:close()
 	end
 end
+
 function M.get_chat_command(url, api_key, data_path, provider)
 	local command = "curl --no-buffer " .. url .. " -H 'Content-Type: application/json' "
+
 	if provider == "openai" or provider == "groq" then
 		command = command .. "-H 'Authorization: Bearer " .. api_key .. "' "
 	end

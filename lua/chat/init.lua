@@ -14,8 +14,6 @@ function M.setup(opts)
 		print("Please provide an API key for OpenAI, or Groq")
 		return
 	end
-		return
-	end
 	vim.g.openai_api_key = openai_api_key
 	vim.g.groq_api_key = groq_api_key
 	vim.g.chat_system_prompt = opts.system_prompt or "You are a helpful assistant."
@@ -48,34 +46,7 @@ local function stream_chat(content, opts)
 	utils.write_to_path(request_body_json, request_body_path)
 
 	local command = utils.get_chat_command(url, api_key, request_body_path, opts.provider)
-
-	vim.g.chat_jobid = vim.fn.jobstart(command, {
-		stdout_buffered = false,
-		on_exit = on_exit,
-		on_stdout = function(_, data, _)
-			for _, line in ipairs(data) do
-				if line ~= "" then
-					-- Strip token to get down to the JSON
-					line = line:gsub("^data: ", "")
-					if line == "" then
-						break
-					end
-					local json = vim.fn.json_decode(line)
-					local chunk = json.choices[1].delta.content
-
-					if chunk ~= nil then
-						if trim_leading then
-							chunk = chunk:gsub("^%s+", "")
-							if chunk ~= "" then
-								trim_leading = false
-							end
-						end
-						callback(chunk)
-					end
-				end
-			end
-		end,
-	})
+	utils.jobstart_openai(command, on_exit, callback, trim_leading)
 end
 
 function M.change_system_prompt(method)
@@ -115,7 +86,7 @@ function M.selection_replace(model, provider)
 		system_prompt = system_prompt,
 		model = model,
 		provider = provider,
-		trim_leading = true,
+		trim_leading = false,
 		on_chunk = function(chunk)
 			chunk = vim.split(chunk, "\n", {})
 			vim.api.nvim_put(chunk, "c", mode == "V", true)
@@ -143,7 +114,7 @@ function M.completion(model, provider)
 		system_prompt = system_prompt,
 		model = model,
 		provider = provider,
-		trim_leading = true,
+		trim_leading = false,
 		on_chunk = utils.create_response_writer(opts),
 	})
 end
