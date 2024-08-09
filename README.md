@@ -13,6 +13,18 @@ Install with your package manager:
   config = function()
     local chat = require 'chat'
 
+    local function set_keymap(mode, key, model, provider, desc)
+      vim.keymap.set(mode, key, function()
+        chat.completion(model, provider)
+      end, { desc = desc, noremap = true, silent = true })
+    end
+
+    local function set_replace_keymap(key, model, provider, desc)
+      vim.keymap.set('v', key, function()
+        chat.selection_replace(model, provider)
+      end, { desc = desc, noremap = true, silent = true })
+    end
+
     chat.setup {
       system_prompt = 'There are instructions in the code comments. Only '
         .. "output code based on what you've seen. Mostly copy it, but "
@@ -23,31 +35,22 @@ Install with your package manager:
         .. 'including the formatting backticks ```',
       openai_api_key = os.getenv 'OPENAI_API_KEY',
       groq_api_key = os.getenv 'GROQ_API_KEY',
+      anthropic_api_key = os.getenv 'ANTHROPIC_API_KEY',
     }
 
-    vim.keymap.set('n', '<leader>acg', function()
-      chat.completion('gpt-4o', 'openai')
-    end, { desc = '[A]I [C]ompletion using [G]PT-4o', noremap = true, silent = true })
+    local claude = 'claude-3-5-sonnet-20240620'
+    local llama = 'llama3-70b-8192'
+    local gpt = 'gpt-4o'
 
-    vim.keymap.set('n', '<leader>acl', function()
-      chat.completion('llama3-70b-8192', 'groq')
-    end, { desc = '[A]I [C]ompletion using [L]lama 3 70B', noremap = true, silent = true })
+    for _, mode in ipairs { 'n', 'v' } do
+      set_keymap(mode, '<leader>acg', gpt, 'openai', '[A]I [C]ompletion using [G]PT-4o')
+      set_keymap(mode, '<leader>acl', llama, 'groq', '[A]I [C]ompletion using [L]lama 3 70B')
+      set_keymap(mode, '<leader>aco', claude, 'anthropic', '[A]I [C]ompletion using Claude [O]pus')
+    end
 
-    vim.keymap.set('v', '<leader>acg', function()
-      chat.completion('gpt-4o', 'openai')
-    end, { desc = '[A]I [C]ompletion using [G]PT-4o', noremap = true, silent = true })
-
-    vim.keymap.set('v', '<leader>acl', function()
-      chat.completion('llama3-70b-8192', 'groq')
-    end, { desc = '[A]I [C]ompletion using [L]lama 3 70B', noremap = true, silent = true })
-
-    vim.keymap.set('v', '<leader>arg', function()
-      chat.selection_replace('gpt-4o', 'openai')
-    end, { desc = '[A]I [R]eplacement using [G]PT-4o', noremap = true, silent = true })
-
-    vim.keymap.set('v', '<leader>arl', function()
-      chat.selection_replace('llama3-70b-8192', 'groq')
-    end, { desc = '[A]I [R]eplacement using [L]lama 3 70B', noremap = true, silent = true })
+    set_replace_keymap('<leader>arg', gpt, 'openai', '[A]I [R]eplacement using [G]PT-4o')
+    set_replace_keymap('<leader>arl', llama, 'groq', '[A]I [R]eplacement using [L]lama 3 70B')
+    set_replace_keymap('<leader>aro', claude, 'anthropic', '[A]I [R]eplacement using Claude [O]pus')
 
     vim.keymap.set('n', '<leader>an', function()
       chat.change_system_prompt 'new'
@@ -68,4 +71,4 @@ Install with your package manager:
 - [ ] Support larger token lengths
 - [ ] Add a function to cancel the current stream
 - [ ] Make it easier to add new model APIs
-
+- [ ] Make the config file more simple
