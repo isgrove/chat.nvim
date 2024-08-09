@@ -13,16 +13,8 @@ Install with your package manager:
   config = function()
     local chat = require 'chat'
 
-    local function set_keymap(mode, key, model, provider, desc)
-      vim.keymap.set(mode, key, function()
-        chat.completion(model, provider)
-      end, { desc = desc, noremap = true, silent = true })
-    end
-
-    local function set_replace_keymap(key, model, provider, desc)
-      vim.keymap.set('v', key, function()
-        chat.selection_replace(model, provider)
-      end, { desc = desc, noremap = true, silent = true })
+    local function set_keymap(mode, key, func, desc)
+      vim.keymap.set(mode, key, func, { desc = desc, noremap = true, silent = true })
     end
 
     chat.setup {
@@ -36,39 +28,64 @@ Install with your package manager:
       openai_api_key = os.getenv 'OPENAI_API_KEY',
       groq_api_key = os.getenv 'GROQ_API_KEY',
       anthropic_api_key = os.getenv 'ANTHROPIC_API_KEY',
+      default_provider = 'anthropic',
+      default_model = 'claude-3-5-sonnet-20240620',
+      model_provider = {
+        ['claude-3-5-sonnet-20240620'] = 'anthropic',
+        ['llama-3.1-70b-versatile'] = 'groq',
+        ['gpt-4o'] = 'openai',
+      },
     }
 
-    local claude = 'claude-3-5-sonnet-20240620'
-    local llama = 'llama3-70b-8192'
-    local gpt = 'gpt-4o'
+    set_keymap('n', '<leader>ac', function()
+      chat.completion()
+    end, '[A]I [C]ompletion')
 
-    for _, mode in ipairs { 'n', 'v' } do
-      set_keymap(mode, '<leader>acg', gpt, 'openai', '[A]I [C]ompletion using [G]PT-4o')
-      set_keymap(mode, '<leader>acl', llama, 'groq', '[A]I [C]ompletion using [L]lama 3 70B')
-      set_keymap(mode, '<leader>aco', claude, 'anthropic', '[A]I [C]ompletion using Claude [O]pus')
-    end
+    set_keymap('v', '<leader>ac', function()
+      chat.completion()
+    end, '[A]I [C]ompletion')
 
-    set_replace_keymap('<leader>arg', gpt, 'openai', '[A]I [R]eplacement using [G]PT-4o')
-    set_replace_keymap('<leader>arl', llama, 'groq', '[A]I [R]eplacement using [L]lama 3 70B')
-    set_replace_keymap('<leader>aro', claude, 'anthropic', '[A]I [R]eplacement using Claude [O]pus')
+    set_keymap('v', '<leader>ar', function()
+      chat.selection_replace()
+    end, '[A]I [C]ompletion')
 
-    vim.keymap.set('n', '<leader>an', function()
+    set_keymap('n', '<leader>an', function()
       chat.change_system_prompt 'new'
-    end, { desc = '[A]I [N]ew system pompt', noremap = true, silent = true })
+    end, '[A]I [N]ew system pompt')
 
-    vim.keymap.set('n', '<leader>ae', function()
+    set_keymap('n', '<leader>ae', function()
       chat.change_system_prompt 'edit'
-    end, { desc = '[A]I [E]dit system prompt', noremap = true, silent = true })
+    end, '[A]I [E]dit system prompt')
   end,
 },
 ```
 
+## Telescope Extension
+
+First, register chat.nvim as a Telescope extension
+```lua
+pcall(require('telescope').load_extension, 'chat')
+```
+
+Then you can set a keymap to pick the current model:
+```lua
+vim.keymap.set('n', '<leader>am', function()
+  require('telescope').extensions.chat.pick_model()
+end, { desc = '[A]I Pick current [M]odel' })
+```
+
+Or you can use it as a command:
+```
+:Telescope chat pick_model
+```
+
 ## TODO
-- [ ] Let users toggle between models instead of having a hotkey for each one
+- [x] Let users toggle between models instead of having a hotkey for each one
 - [ ] Save multiple system prompts and toggle between them
 - [ ] Add Google Gemini support
 - [x] Add Anthropic calude support
-- [ ] Support larger token lengths
+- [ ] Let users configure the max tokens
 - [ ] Add a function to cancel the current stream
-- [ ] Make it easier to add new model APIs
-- [ ] Make the config file more simple
+- [ ] Make it easier to add new model provider APIs
+- [x] Make the config file more simple
+
