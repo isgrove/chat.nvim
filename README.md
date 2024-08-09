@@ -61,7 +61,11 @@ Install with your package manager:
 ```
 
 ## TODO
+- [ ] Let users toggle between models instead of having a hotkey for each one
 - [ ] Save multiple system prompts and toggle between them
-- [ ] Add google gemini support
-- [ ] Add anthropic calude support
+- [ ] Add Google Gemini support
+- [x] Add Anthropic calude support
+- [ ] Support larger token lengths
+- [ ] Add a function to cancel the current stream
+- [ ] Make it easier to add new model APIs
 

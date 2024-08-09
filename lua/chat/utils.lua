@@ -12,6 +12,10 @@ function M.get_provider_opts(provider)
 			name = "Groq",
 			url = "https://api.groq.com/openai/v1/chat/completions",
 		},
+		anthropic = {
+			api_key = vim.g.anthropic_api_key,
+			name = "Anthropic",
+			url = "https://api.anthropic.com/v1/messages",
 		},
 	}
 
@@ -30,29 +34,51 @@ function M.get_provider_opts(provider)
 	return data.url, data.api_key
 end
 
-
-function M.jobstart_openai(command, on_exit, callback, trim_leading)
+function M.jobstart(command, on_exit, callback, trim_leading, provider)
 	vim.g.chat_jobid = vim.fn.jobstart(command, {
 		stdout_buffered = false,
 		on_exit = on_exit,
 		on_stdout = function(_, data, _)
 			for _, line in ipairs(data) do
-				if line ~= "" then
-					-- Strip token to get down to the JSON
-					line = line:gsub("^data: ", "")
+				local data_start = line:find("data: ")
+				if data_start then
+					line = line:sub(data_start + 6)
+
 					if line == "" then
 						break
 					end
+
+					if line == "data: [DONE]" then
+						return true
+					end
+
 					local json = vim.fn.json_decode(line)
-					local chunk = json.choices[1].delta.content
+
+					if provider == "anthropic" and json.type == "message_stop" then
+						return
+					end
+
+					local chunk
+
+					if provider == "anthropic" then
+						if json.delta and json.delta.text then
+							chunk = json.delta.text
+						end
+					else
+						if json.choices and json.choices[1] and json.choices[1].delta then
+							chunk = json.choices[1].delta.content
+						end
+					end
 
 					if chunk ~= nil then
+						-- Remove leading whitespace
 						if trim_leading then
 							chunk = chunk:gsub("^%s+", "")
 							if chunk ~= "" then
 								trim_leading = false
 							end
 						end
+
 						callback(chunk)
 					end
 				end
@@ -76,11 +102,17 @@ function M.get_request_body(content, opts)
 		stream = true,
 	}
 
+	if opts.provider == "anthropic" then
+		request_body.system = opts.system_prompt
+		request_body.max_tokens = opts.max_tokens
+	end
+
 	return vim.fn.json_encode(request_body)
 end
 
-function M.write_to_path(content, path)
-	local temp = io.open(path, "w")
+function M.write_to_path(content, path, method)
+	method = method or "w"
+	local temp = io.open(path, method)
 	if temp ~= nil then
 		temp:write(content)
 		temp:close()
@@ -92,6 +124,8 @@ function M.get_chat_command(url, api_key, data_path, provider)
 
 	if provider == "openai" or provider == "groq" then
 		command = command .. "-H 'Authorization: Bearer " .. api_key .. "' "
+	elseif provider == "anthropic" then
+		command = command .. "-H 'x-api-key: " .. api_key .. "' -H 'anthropic-version: 2023-06-01' "
 	end
 
 	command = command .. "-d @" .. data_path

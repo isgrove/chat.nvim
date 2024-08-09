@@ -9,13 +9,16 @@ local M = {}
 function M.setup(opts)
 	local openai_api_key = opts.openai_api_key
 	local groq_api_key = opts.groq_api_key
+	local anthropic_api_key = opts.anthropic_api_key
 
-	if not openai_api_key and not groq_api_key then
-		print("Please provide an API key for OpenAI, or Groq")
+	if not openai_api_key and not groq_api_key and not anthropic_api_key then
+		print("Please provide an API key for OpenAI, Groq, or Anthropic")
 		return
 	end
+
 	vim.g.openai_api_key = openai_api_key
 	vim.g.groq_api_key = groq_api_key
+	vim.g.anthropic_api_key = anthropic_api_key
 	vim.g.chat_system_prompt = opts.system_prompt or "You are a helpful assistant."
 end
 
@@ -31,7 +34,7 @@ local function stream_chat(content, opts)
 	opts.provider = opts.provider or DEFAULT_PROVIDER
 	opts.model = opts.model or DEFAULT_MODEL
 
-	local callback = opts.on_chunk or identity1
+	local on_chunk = opts.on_chunk or identity1
 	local on_exit = opts.on_exit or identity
 	local trim_leading = opts.trim_leading or true
 	local url, api_key = utils.get_provider_opts(opts.provider)
@@ -46,7 +49,8 @@ local function stream_chat(content, opts)
 	utils.write_to_path(request_body_json, request_body_path)
 
 	local command = utils.get_chat_command(url, api_key, request_body_path, opts.provider)
-	utils.jobstart_openai(command, on_exit, callback, trim_leading)
+
+	utils.jobstart(command, on_exit, on_chunk, trim_leading, opts.provider)
 end
 
 function M.change_system_prompt(method)
