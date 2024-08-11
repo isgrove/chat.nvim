@@ -100,11 +100,11 @@ function M.get_request_body(content, opts)
 		model = opts.model,
 		messages = messages,
 		stream = true,
+		max_tokens = opts.max_tokens,
 	}
 
 	if opts.provider == "anthropic" then
 		request_body.system = opts.system_prompt
-		request_body.max_tokens = opts.max_tokens
 	end
 
 	return vim.fn.json_encode(request_body)

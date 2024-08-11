@@ -35,6 +35,7 @@ Install with your package manager:
         ['llama-3.1-70b-versatile'] = 'groq',
         ['gpt-4o'] = 'openai',
       },
+      max_tokens = 4096,
     }
 
     set_keymap('n', '<leader>ac', function()
@@ -84,7 +85,7 @@ Or you can use it as a command:
 - [ ] Save multiple system prompts and toggle between them
 - [ ] Add Google Gemini support
 - [x] Add Anthropic calude support
-- [ ] Let users configure the max tokens
+- [x] Let users configure the max tokens
 - [ ] Add a function to cancel the current stream
 - [ ] Make it easier to add new model provider APIs
 - [x] Make the config file more simple

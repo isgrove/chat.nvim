@@ -1,7 +1,5 @@
 local utils = require("chat.utils")
 
-local MAX_TOKENS = 1024
-
 local M = {}
 
 function M.setup(opts)
@@ -32,6 +30,8 @@ function M.setup(opts)
 	vim.g.current_model = default_model
 
 	vim.g.model_provider = model_provider
+
+	vim.g.max_tokens = opts.max_tokens or 4096
 end
 
 local function stream_chat(content, opts)
@@ -42,7 +42,7 @@ local function stream_chat(content, opts)
 	local identity = function() end
 
 	opts = opts or {}
-	opts.max_tokens = opts.max_tokens or MAX_TOKENS
+	opts.max_tokens = opts.max_tokens or vim.g.max_tokens
 	opts.provider = opts.provider or vim.g.current_provider
 	opts.model = opts.model or vim.g.current_model
 
