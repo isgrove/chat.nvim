@@ -135,6 +135,10 @@ function M.completion(model, provider)
 	})
 end
 
+function M.cancel()
+	utils.cancel_job()
+end
+
 local function get_model_provider()
 	return vim.g.model_provider
 end

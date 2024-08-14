@@ -87,6 +87,14 @@ function M.jobstart(command, on_exit, callback, trim_leading, provider)
 	})
 end
 
+function M.cancel_job()
+	if vim.g.chat_jobid then
+		vim.fn.jobstop(vim.g.chat_jobid)
+		vim.g.chat_jobid = nil
+		print("Canceled AI completion")
+	end
+end
+
 function M.get_request_body(content, opts)
 	local messages = {
 		{ role = "user", content = content },

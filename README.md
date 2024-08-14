@@ -42,10 +42,6 @@ Install with your package manager:
       chat.completion()
     end, '[A]I [C]ompletion')
 
-    set_keymap('v', '<leader>ac', function()
-      chat.completion()
-    end, '[A]I [C]ompletion')
-
     set_keymap('v', '<leader>ar', function()
       chat.selection_replace()
     end, '[A]I [C]ompletion')
@@ -57,6 +53,10 @@ Install with your package manager:
     set_keymap('n', '<leader>ae', function()
       chat.change_system_prompt 'edit'
     end, '[A]I [E]dit system prompt')
+
+    set_keymap('n', '<Esc>', function()
+      chat.cancel()
+    end, 'Cancel AI completion')
   end,
 },
 ```
@@ -86,7 +86,7 @@ Or you can use it as a command:
 - [ ] Add Google Gemini support
 - [x] Add Anthropic calude support
 - [x] Let users configure the max tokens
-- [ ] Add a function to cancel the current stream
+- [x] Add a function to cancel the current stream
 - [ ] Make it easier to add new model provider APIs
 - [x] Make the config file more simple
 
