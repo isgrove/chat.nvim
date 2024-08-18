@@ -163,9 +163,6 @@ function M.get_curl_args(opts)
 	return args
 end
 
--- TODO: Find a way to undo the entire GPT response in one :undo
--- https://neovim.io/doc/user/undo.html
--- what does this do?
 function M.create_response_writer(opts)
 	opts = opts or {}
 	local bufnum = vim.api.nvim_get_current_buf()
@@ -176,6 +173,8 @@ function M.create_response_writer(opts)
 	local response = ""
 	return function(chunk)
 		vim.schedule(function()
+			vim.cmd("undojoin")
+
 			local num_lines = #(vim.split(response, "\n", {}))
 			vim.api.nvim_buf_set_lines(bufnum, line_start, line_start + num_lines, false, {})
 
@@ -183,8 +182,6 @@ function M.create_response_writer(opts)
 
 			response = response .. chunk
 			vim.api.nvim_buf_set_lines(bufnum, line_start, line_start, false, vim.split(response, "\n", {}))
-
-			vim.cmd("undojoin")
 		end)
 	end
 end
