@@ -41,8 +41,6 @@ function M.stream_model_completion(opts)
 	opts.model = opts.model or vim.g.current_model
 	opts.system_prompt = opts.system_prompt or vim.g.chat_system_prompt
 
-	opts.callback_fn = utils.create_response_writer(opts)
-
 	utils.set_content_opts(opts)
 
 	if opts.replace then
@@ -53,6 +51,8 @@ function M.stream_model_completion(opts)
 	utils.set_provider_opts(opts)
 	utils.set_body_opts(opts)
 	utils.set_stdout_fn_opts(opts)
+
+	opts.callback_fn = utils.create_response_writer(opts)
 
 	local args = utils.get_curl_args(opts)
 
