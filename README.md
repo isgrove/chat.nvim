@@ -1,9 +1,12 @@
 # chat.nvim
-Make requests to LLMs right from Neovim. Here is what you can do:
-- Replace the selected text
-- Get a completion for the selected text
-- Get a completion for the text in the current buffer
-- Change or edit the system prompt
+Integrate AI-assisted coding into your Neovim workflow. This plugin leverages Large Language Models (LLMs) to provide users with features like code completion and editing.
+
+Use the following commands to interact with the plugin:
+- `[A]I [C]ompletion`: Stream model completion for the current cursor position or selected text.
+- `[A]I [R]eplace`: Replace the current cursor position or selected text with the model completion result.
+- `[A]I [N]ew system prompt`: Change the system prompt for the AI model.
+- `[A]I [E]dit system prompt`: Edit the current system prompt for the AI model.
+- `[A]I Pick current [M]odel`: Select the current AI model using Telescope.
 
 ## Setup
 Install with your package manager:
