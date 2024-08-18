@@ -45,7 +45,6 @@ function M.stream_model_completion(opts)
 
 	if opts.replace then
 		utils.send_keys("d")
-		opts.line_no = opts.line_no - 1
 	end
 
 	utils.set_provider_opts(opts)
