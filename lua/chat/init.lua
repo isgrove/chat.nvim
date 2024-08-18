@@ -93,8 +93,13 @@ end
 function M.get_models()
 	local model_list = {}
 	local model_provider = get_model_provider()
+	local current_model = vim.g.current_model
+
+	table.insert(model_list, current_model)
 	for model, _ in pairs(model_provider) do
-		table.insert(model_list, model)
+		if model ~= current_model then
+			table.insert(model_list, model)
+		end
 	end
 	return model_list
 end
