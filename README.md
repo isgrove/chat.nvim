@@ -29,9 +29,9 @@ Install with your package manager:
       groq_api_key = os.getenv 'GROQ_API_KEY',
       anthropic_api_key = os.getenv 'ANTHROPIC_API_KEY',
       default_provider = 'anthropic',
-      default_model = 'claude-3-5-sonnet-20240620',
+      default_model = 'claude-3-5-sonnet-latest',
       model_provider = {
-        ['claude-3-5-sonnet-20240620'] = 'anthropic',
+        ['claude-3-5-sonnet-latest'] = 'anthropic',
         ['llama-3.1-70b-versatile'] = 'groq',
         ['gpt-4o'] = 'openai',
       },
