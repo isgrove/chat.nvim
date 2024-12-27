@@ -9,16 +9,19 @@ function M.set_provider_opts(opts)
 			api_key = vim.g.openai_api_key,
 			name = "OpenAI",
 			url = "https://api.openai.com/v1/chat/completions",
+			spec = "openai",
 		},
 		groq = {
 			api_key = vim.g.groq_api_key,
 			name = "Groq",
 			url = "https://api.groq.com/openai/v1/chat/completions",
+			spec = "openai",
 		},
 		anthropic = {
 			api_key = vim.g.anthropic_api_key,
 			name = "Anthropic",
 			url = "https://api.anthropic.com/v1/messages",
+			spec = "anthropic",
 		},
 	}
 
@@ -36,6 +39,7 @@ function M.set_provider_opts(opts)
 
 	opts.url = data.url
 	opts.api_key = data.api_key
+	opts.spec = data.spec
 end
 
 function M.handle_openai_stdout(callback, data)
@@ -66,11 +70,11 @@ function M.handle_anthropic_stdout(callback, data, event_state)
 end
 
 function M.set_stdout_fn_opts(opts)
-	if opts.provider == "openai" or opts.provider == "groq" then
+	if opts.spec == "openai" then
 		opts.stdout_fn = function(data)
 			M.handle_openai_stdout(opts.callback_fn, data)
 		end
-	else
+	elseif opts.spec == "anthropic" then
 		opts.stdout_fn = function(data, event_state)
 			M.handle_anthropic_stdout(opts.callback_fn, data, event_state)
 		end
@@ -129,7 +133,7 @@ function M.set_body_opts(opts)
 		{ role = "user", content = opts.content },
 	}
 
-	if opts.provider == "openai" or opts.provider == "groq" then
+	if opts.spec == "openai" then
 		table.insert(messages, 1, { role = "system", content = opts.system_prompt })
 	end
 
@@ -140,7 +144,7 @@ function M.set_body_opts(opts)
 		max_tokens = opts.max_tokens,
 	}
 
-	if opts.provider == "anthropic" then
+	if opts.spec == "anthropic" then
 		body.system = opts.system_prompt
 	end
 
@@ -150,10 +154,10 @@ end
 function M.get_curl_args(opts)
 	local args = { "--no-buffer", opts.url, "-H", "Content-Type: application/json", "-d", vim.json.encode(opts.body) }
 
-	if opts.provider == "openai" or opts.provider == "groq" then
+	if opts.spec == "openai" then
 		table.insert(args, "-H")
 		table.insert(args, "Authorization: Bearer " .. opts.api_key)
-	elseif opts.provider == "anthropic" then
+	elseif opts.spec == "anthropic" then
 		table.insert(args, "-H")
 		table.insert(args, "x-api-key: " .. opts.api_key)
 		table.insert(args, "-H")
