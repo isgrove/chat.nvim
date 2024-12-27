@@ -23,6 +23,12 @@ function M.set_provider_opts(opts)
 			url = "https://api.anthropic.com/v1/messages",
 			spec = "anthropic",
 		},
+		deepseek = {
+			api_key = vim.g.deepseek_api_key,
+			name = "DeepSeek",
+			url = "https://api.deepseek.com/chat/completions",
+			spec = "openai",
+		},
 	}
 
 	local data = provider_data[opts.provider]

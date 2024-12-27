@@ -6,14 +6,15 @@ function M.setup(opts)
 	local openai_api_key = opts.openai_api_key
 	local groq_api_key = opts.groq_api_key
 	local anthropic_api_key = opts.anthropic_api_key
+	local deepseek_api_key = opts.deepseek_api_key
 
 	local default_provider = opts.default_provider
 	local default_model = opts.default_model
 
 	local model_provider = opts.model_provider
 
-	if not openai_api_key and not groq_api_key and not anthropic_api_key then
-		error("chat.nvim required an API key for a least one provider (OpenAI, Groq or Anthropic).")
+	if not openai_api_key and not groq_api_key and not anthropic_api_key and not deepseek_api_key then
+		error("chat.nvim required an API key for a least one provider (OpenAI, Groq, Anthropic, or DeepSeek).")
 	end
 
 	if not default_model or not default_provider then
@@ -23,6 +24,7 @@ function M.setup(opts)
 	vim.g.openai_api_key = openai_api_key
 	vim.g.groq_api_key = groq_api_key
 	vim.g.anthropic_api_key = anthropic_api_key
+	vim.g.deepseek_api_key = deepseek_api_key
 
 	vim.g.chat_system_prompt = opts.system_prompt or "You are a helpful assistant."
 
