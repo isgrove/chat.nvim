@@ -1,7 +1,17 @@
 # chat.nvim
-Integrate AI-assisted coding into your Neovim workflow. This plugin leverages Large Language Models (LLMs) to provide users with features like code completion and editing.
 
-Use the following commands to interact with the plugin:
+A Lua plugin that provides AI-assisted coding features in Neovim, prioritising developer control and workflow.
+
+This plugin leverages Large Language Models (LLMs) to enhance your coding experience while maintaining developer focus and autonomy. Unlike intrusive suggestion systems, chat.nvim takes a deliberate, command-based approach that preserves your control over the AI assistance.
+
+## Features
+
+- **Command-based workflow**: Maintains developer focus and autonomy
+- **Multiple LLM providers**: Seamless integrations with various AI models (Azure, OpenAI/ChatGPT, Anthropic/Claude, Groq, Deepseek)
+- **Unified interface**: Switch between different AI models based on specific needs
+
+## Commands
+
 - `[A]I [C]ompletion`: Stream model completion for the current cursor position or selected text.
 - `[A]I [R]eplace`: Replace the current cursor position or selected text with the model completion result.
 - `[A]I [N]ew system prompt`: Change the system prompt for the AI model.
