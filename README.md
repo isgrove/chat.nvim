@@ -40,9 +40,10 @@ Install with your package manager:
       anthropic_api_key = os.getenv 'ANTHROPIC_API_KEY',
       deepseek_api_key = os.getenv 'DEEPSEEK_API_KEY',
       default_provider = 'anthropic',
-      default_model = 'claude-3-5-sonnet-latest',
+      default_model = 'claude-sonnet-4-20250514',
       model_provider = {
-        ['claude-3-5-sonnet-latest'] = 'anthropic',
+        ['claude-sonnet-4-20250514'] = 'anthropic',
+        ['claude-opus-4-20250514'] = 'anthropic',
         ['llama-3.1-70b-versatile'] = 'groq',
         ['gpt-4o'] = 'openai',
         ['deepseek-chat'] = 'deepseek',
